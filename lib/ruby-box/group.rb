@@ -1,7 +1,7 @@
 module RubyBox
   class Group < Item
 
-    has_many :users
+    has_many :memberships
 
     private
 
