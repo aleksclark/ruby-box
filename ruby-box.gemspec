@@ -34,6 +34,7 @@ Gem::Specification.new do |s|
     "lib/ruby-box/exceptions.rb",
     "lib/ruby-box/file.rb",
     "lib/ruby-box/folder.rb",
+    "lib/ruby-box/group.rb",
     "lib/ruby-box/item.rb",
     "lib/ruby-box/session.rb",
     "lib/ruby-box/shared_link.rb",
