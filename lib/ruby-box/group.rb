@@ -3,7 +3,7 @@ module RubyBox
 
     has_many :memberships
 
-    def add_member member, role="member"
+    def add_membership member, role="member"
       uri = URI.parse( "#{RubyBox::API_URL}/group_memberships" )
       request = Net::HTTP::Post.new( uri.request_uri )
       request.body = JSON.dump({
@@ -19,9 +19,12 @@ module RubyBox
 
     private
 
+    def has_mini_format?
+      true
+    end
+
     def resource_name
       'groups'
     end
-
   end
 end
