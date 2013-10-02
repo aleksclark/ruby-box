@@ -100,6 +100,10 @@ module RubyBox
         params['Authorization'] = build_auth_header
       end
 
+      if @behalf_of
+        request.add_field('On-Behalf-Of', @behalf_of)
+      end
+
       open(url, params)
     end
     
