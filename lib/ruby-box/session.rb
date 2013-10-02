@@ -101,7 +101,7 @@ module RubyBox
       end
 
       if @behalf_of
-        request.add_field('On-Behalf-Of', @behalf_of)
+        params['On-Behalf-Of'] = @behalf_of
       end
 
       open(url, params)
