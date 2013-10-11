@@ -118,7 +118,7 @@ module RubyBox
     def upload_file_to_folder(local_path, folder, overwrite)
       file_name = local_path.split('/').pop
       return unless folder
-      ::File.open( local_path ) do |data|
+      ::File.open(local_path, 'rb') do |data|
         folder.upload_file(file_name, data, overwrite)
       end
     end
