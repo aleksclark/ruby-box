@@ -7,6 +7,7 @@ require 'webmock/rspec'
 
 describe RubyBox, :skip => true do
   before do
+
     WebMock.allow_net_connect!
     
     @session = RubyBox::Session.new({
@@ -41,12 +42,31 @@ describe RubyBox, :skip => true do
   
   it "raises a RequestError if a badly formed request detected by the server" do
     stub_request(:get, "https://api.box.com/2.0/folders/0").to_return(:status => 401, :body => '{"type": "error", "status": 401, "message": "baddd req"}', :headers => {})
-    lambda {@client.root_folder}.should raise_error( RubyBox::AuthError ) 
+    lambda {@client.root_folder}.should raise_error( RubyBox::AuthError )
+
+    # make sure status and body is
+    # set on error object.
+    begin
+      @client.root_folder
+    rescue Exception => e
+      e.body.should == '{"type": "error", "status": 401, "message": "baddd req"}'
+      e.status.should == 401
+    end
   end
 
   it "raises a ServerError if the server raises a 500 error" do
     stub_request(:get, "https://api.box.com/2.0/folders/0").to_return(:status => 503, :body => '{"type": "error", "status": 503, "message": "We messed up! - Box.com"}', :headers => {})
     lambda {@client.root_folder}.should raise_error( RubyBox::ServerError )
+    
+    # make sure status and body is
+    # set on error object.
+    begin
+      @client.root_folder
+    rescue Exception => e
+      e.body.should == '{"type": "error", "status": 503, "message": "We messed up! - Box.com"}'
+      e.status.should == 503
+    end
+
   end
 
   describe RubyBox::Folder do
@@ -112,7 +132,21 @@ describe RubyBox, :skip => true do
   end
 
   describe RubyBox::Client do
-    describe '#put_data' do
+
+    describe RubyBox::Client do
+      describe '#item' do
+        it "item method can lookup generic items, e.g., files or folders" do
+          file = @client.item( '/ruby-box_gem_testing/cool stuff/кузнецкий_105_а_№2.test' )
+          file.size.should == 14
+          file.name.should == 'кузнецкий_105_а_№2.test'
+
+          folder = @client.item( 'ruby-box_gem_testing' )
+          folder.name.should == 'ruby-box_gem_testing'
+        end
+      end
+    end
+
+    context 'uploading files' do
       it "should update an existing file" do
         utf8_file_name = '遠志教授.jpg'
         fdata = File.open( 'spec/fixtures/' + utf8_file_name, 'rb' )
@@ -139,6 +173,14 @@ describe RubyBox, :skip => true do
         file.name.should == '遠志教授.jpg'
         file.delete        
       end
+
+      it "should allow a file to be uploaded by a folder id" do
+        utf8_file_name = '遠志教授.jpg'
+        folder = @client.folder('/ruby-box_gem_testing/cool stuff/')
+        file = @client.upload_file_by_folder_id('spec/fixtures/' + utf8_file_name, folder.id)
+        file.name.should == '遠志教授.jpg'
+        file.delete        
+      end
     end
   
     describe '#create_folder' do
@@ -146,6 +188,14 @@ describe RubyBox, :skip => true do
         folder = @client.create_folder('/ruby-box_gem_testing/cool stuff/екузц/path1/path2')
         folder.id.should_not == nil
         folder.delete if folder
+      end
+    end
+
+    describe '#folder_by_id' do
+      it "allows a folder to be retrieved by its id" do
+        folder = @client.folder('/ruby-box_gem_testing')
+        folder_by_id = @client.folder_by_id(folder.id)
+        folder_by_id.name.should == folder.name
       end
     end
 
@@ -157,10 +207,16 @@ describe RubyBox, :skip => true do
       end
     end
 
-    describe '#get_file_info' do
+    context 'retrieving a file' do
       it "returns meta information for a file" do
         file = @client.file( '/ruby-box_gem_testing/cool stuff/кузнецкий_105_а_№2.test' )
         file.size.should == 14
+      end
+
+      it "a file can be retrieved by its id" do
+        file = @client.file( '/ruby-box_gem_testing/cool stuff/кузнецкий_105_а_№2.test' )
+        file_by_id = @client.file_by_id( file.id )
+        file_by_id.size.should == 14
       end
     end
     
@@ -328,5 +384,4 @@ describe RubyBox, :skip => true do
     end
 
   end
-
 end

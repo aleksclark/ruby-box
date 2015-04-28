@@ -7,15 +7,8 @@ module RubyBox
       resp = stream.read
     end
 
-    def move_to( folder_id, name=nil )
-      # Allow either a folder_id or a folder object
-      # to be passed in.
-      folder_id = folder_id.id if folder_id.instance_of?(RubyBox::Folder)
-
-      self.name = name if name
-      self.parent = {"id" => folder_id}
-
-      update
+    def download_url
+      @session.get( file_content_url )["location"]
     end
 
     def copy_to( folder_id, name=nil )
@@ -35,8 +28,7 @@ module RubyBox
     end
 
     def stream( opts={} )
-      url = "#{RubyBox::API_URL}/#{resource_name}/#{id}/content"
-      @session.do_stream( url, opts )
+      open(download_url, opts)
     end
 
     def upload_content( data )
@@ -83,6 +75,10 @@ module RubyBox
     end
 
     private
+    def file_content_url
+      "#{RubyBox::API_URL}/#{resource_name}/#{id}/content"
+    end
+    
 
     def resource_name
       'files'
@@ -90,10 +86,6 @@ module RubyBox
 
     def has_mini_format?
       true
-    end
-
-    def update_fields
-      ['name', 'description', 'parent']
     end
 
     def prepare_upload(data, fname)

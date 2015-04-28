@@ -38,6 +38,16 @@ module RubyBox
       folder.files(file_name).first if folder
     end
 
+    def item(path)
+      path = split_path( path.sub(/^\.\//, '') )
+      item_name = path.pop
+      folder = folder_from_split_path( path )
+
+      folder.items.select do |item|
+        item.instance_variable_get(:@raw_item)['name'] and item.name == item_name
+      end.first
+    end
+
     def download(path)
       file = file(path)
       file.download if file
@@ -113,6 +123,14 @@ module RubyBox
       User.new(@session, resp)
     end
 
+    def users(filter_term = "", limit = 100, offset = 0)
+      url = "#{RubyBox::API_URL}/users?filter_term=#{URI::encode(filter_term)}&limit=#{limit}&offset=#{offset}"
+      resp = @session.get( url )
+      resp['entries'].map do |entry|
+        RubyBox::Item.factory(@session, entry)
+      end
+    end
+
     private
 
     def upload_file_to_folder(local_path, folder, overwrite)
@@ -136,7 +154,7 @@ module RubyBox
       unless stream_position.to_s == 'now'
         stream_position = stream_position.kind_of?(Numeric) ? stream_position : 0
       end
-      stream_type = [:all, :changes, :sync].include?(stream_type) ? stream_type : :all
+      stream_type = [:all, :changes, :sync, :admin_logs].include?(stream_type) ? stream_type : :all
       limit = limit.kind_of?(Fixnum) ? limit : 100
       "stream_position=#{stream_position}&stream_type=#{stream_type}&limit=#{limit}"
     end

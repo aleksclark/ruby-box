@@ -66,15 +66,30 @@ module RubyBox
           'role' => role.to_s
       }).create
     end
-    
+
+    # see http://developers.box.com/docs/#folders-copy-a-folder
+    # for a description of the behavior
+    def copy_to(destination, name=nil)
+      parent = {'parent' => {'id' => destination.id}}
+      parent.merge!('name' => name) if name
+
+      RubyBox::Folder.new(@session, post(folder_method(:copy), parent))
+    end
+
     private
+    def post(extra_url, body)
+      uri = URI.parse("#{RubyBox::API_URL}/#{extra_url}")
+      post = Net::HTTP::Post.new(uri.request_uri)
+      post.body = JSON.dump(body)
+      @session.request(uri, post)
+    end
 
     def resource_name
       'folders'
     end
 
-    def has_mini_format?
-      true
+    def folder_method(method)
+      "folders/#{id}/#{method}"
     end
 
     def collection_for(key)
@@ -90,6 +105,11 @@ module RubyBox
       ['name', 'description']
     end
 
+    def has_mini_format?
+      true
+
+    end
+
     def items_by_type(type, name, item_limit, offset, fields)
 
       # allow paramters to be set via
@@ -99,7 +119,7 @@ module RubyBox
       end
 
       items(item_limit, offset, fields).select do |item|
-        item.kind_of? type and (name.nil? or item.name == name)
+        item.kind_of? type and (name.nil? or item.name.casecmp(name) == 0)
       end
 
     end

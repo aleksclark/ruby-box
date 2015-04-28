@@ -30,6 +30,22 @@ describe RubyBox::Folder do
     root.created_at.year.should == 2012
   end
 
+  describe "#find_by_type" do
+    it "compares name in a case insensitive manner" do
+      items = [
+        JSON.parse('{    "total_count": 4,    "entries": [        {            "type": "folder",            "id": "409047867",            "sequence_id": "1",            "etag": "1",            "name": "Here\'s your folder"        },        {            "type": "file",            "id": "409042867",            "sequence_id": "1",            "etag": "1",            "name": "A choice file"        }    ],    "offset": "0",    "limit": "2"}'),
+        JSON.parse('{    "total_count": 4,    "entries": [        {            "type": "folder",            "id": "409047868",            "sequence_id": "1",            "etag": "1",            "name": "Here\'s another folder"        },        {            "type": "file",            "id": "409042810",            "sequence_id": "1",            "etag": "1",            "name": "A choice file"        }    ],    "offset": "2",    "limit": "2"}')  
+      ]
+
+      RubyBox::Session.any_instance.stub(:request) { items.pop }
+      session = RubyBox::Session.new
+
+      # should return one file.
+      files = RubyBox::Folder.new(session, {'id' => 1}).files('A CHOICE file')
+      files.count.should == 1
+    end
+  end
+
   describe '#items' do
     it "should return a folder object for folder items" do
       item = JSON.parse('{    "id": "0000001", "total_count": 1,    "entries": [        {            "type": "folder",            "id": "409047867",            "sequence_id": "1",            "etag": "1",            "name": "Here\'s your folder"        }   ],    "offset": "0",    "limit": "1"}')
@@ -99,7 +115,6 @@ describe RubyBox::Folder do
       files = RubyBox::Folder.new(session, {'id' => 1}).files('foobar')
       files.count.should == 0
     end
-
   end
 
   describe '#discussions' do
@@ -119,6 +134,47 @@ describe RubyBox::Folder do
       files = RubyBox::Folder.new(session, {'id' => 1}).folders
       files.count.should == 1
       files.first.kind_of?(RubyBox::Folder).should == true
+    end
+  end
+
+  context '#copy_to' do
+    let(:source_folder) { RubyBox::Folder.new(@session, {'id' => 1}) }
+    let(:destination) { RubyBox::Folder.new(@session, {'id' => 100}) }
+    let(:last_request) { JSON.parse(@request.body) }
+    let(:last_uri) { @uri.to_s }
+
+    before(:each) do
+      @session.stub(:request).with do |uri, request, _, _|
+        @uri, @request = uri, request
+      end
+    end
+
+    it 'uses itself for the copy uri' do
+      source_folder.copy_to destination
+      last_uri.should match /folders\/#{source_folder.id}\/copy/
+    end
+
+    it 'uses the destination as the parent' do
+      source_folder.copy_to destination
+      last_request['parent']['id'].should eq(destination.id)
+    end
+
+    it 'uses the source as the name by default' do
+      source_folder.copy_to destination
+      last_request.should_not have_key 'name'
+    end
+
+    it 'can provide a new name if desired' do
+      source_folder.copy_to destination, 'renamed-folder'
+      last_request['name'].should eq('renamed-folder')
+    end
+
+    it 'returns the newly created folder' do
+      @session.should_receive(:request).and_return('type' => 'folder', 'id' => '123')
+      copied_folder = source_folder.copy_to(destination)
+
+      copied_folder.should be_a(RubyBox::Folder)
+      copied_folder.id.should eq("123")
     end
   end
 

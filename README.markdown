@@ -1,7 +1,9 @@
 ruby-box
 ========
 
-Mainted by: [Attachments.me](https://attachments.me)
+Build Status: [![Build Status](https://travis-ci.org/attachmentsme/ruby-box.png)](https://travis-ci.org/attachmentsme/ruby-box)
+
+Mainted by: [Attachments.me](http://attachments.me)
 
 RubyBox provides a simple, chainable, feature-rich client for [Box's 2.0 API](http://developers.box.com/docs/).
 
@@ -118,8 +120,10 @@ Folders
 * Listing items in a folder:
 
 ```ruby
+
 files = client.folder('/image_folder').files # all files in a folder using a path (bad).
 files = client.folder(@folder_id).files # all files in a folder using an id (good).
+
 folders = client.root_folder.folders # all folders in the root directory.
 files_and_folders = client.folder('files').items # all files and folders in /files
 ```
@@ -129,12 +133,15 @@ files_and_folders = client.folder('files').items # all files and folders in /fil
 ```ruby
 client.folder_by_id(@folder_id).create_subfolder('subfolder') # using an id (good)
 client.folder('image_folder').create_subfolder('subfolder') # using a path (bad)
+
 ```
 
 * Setting the description on a folder:
 
 ```ruby
+
 folder = client.folder('image_folder') # using a path (bad)
+
 folder.description = 'Description on Folder'
 folder.update
 ```
@@ -142,7 +149,9 @@ folder.update
 * Listing the comments in a discussion surrounding a folder.
 
 ```ruby
+
 folder = client.folder('image_folder') # using a path (seriously, don't do this)
+
 discussion = folder.discussions.first
 discussion.comments.each {|comment| p comment.message}
 ```
@@ -150,7 +159,9 @@ discussion.comments.each {|comment| p comment.message}
 * Creating a shared link for a folder.
 
 ```ruby
+
 folder = client.folder('image_folder').create_shared_link # using a path (bad)
+
 p folder.shared_link['url'] # https://www.box.com/s/d6de3224958c1755412
 ```
 
@@ -160,8 +171,10 @@ Files
 * Fetching a file's meta information.
 
 ```ruby
+
 file = client.file('/image_folder/an-image.jpg') # using a path (bad)
 file = client.file(@file_id) # using an id (it's not funny, don't use paths!)
+
 p file.name
 p file.created_at
 ```
@@ -169,8 +182,10 @@ p file.created_at
 * Uploading a file to a folder.
 
 ```ruby
+
 file = client.upload_file('./LICENSE.txt', '/license_folder') # paths again (only if you really have to)
 file = client.upload_file_by_folder_id('./LICENSE.txt', @folder_id) # much nicer
+
 ```
 
 * Downloading a file.
@@ -181,10 +196,18 @@ f = open('./LOCAL.txt', 'w+')
 f.write( client.file('/license_folder/LICENSE.txt').download )
 f.close()
 
+
 # do this if you can
 f = open('./LOCAL.txt', 'w+')
 f.write( client.file_by_id(@file_id).download ) # again, paths bad!
 f.close()
+
+# You can also grab the raw url with
+client.file_by_id(@file_id).download_url
+
+# Note that this URL is not persistent. Clients will need to follow the url immediately in order to
+# actually download the file
+
 ```
 
 * Deleting a file.
@@ -199,6 +222,7 @@ client.file('/license_folder/LICENSE.txt').delete
 ```ruby
 comments = client.file('/image_folder/an-image.jpg').comments # preserved so as to not break things unexpectedly
 comments = client.file_by_id(@file_id).comments # go through your old code and change to this
+
 
 comments.each do |comment|
     p comment.message
@@ -216,6 +240,7 @@ p file.shared_link.url # https://www.box.com/s/d6de3224958c1755412
 * Copying a file to another folder.
 
 ```ruby
+
 # do you really want to query 4 times just to retrieve these?
 file = client.file('/one_folder/cow_folder/an-image.jpg')
 folder = client.folder('image_folder')
@@ -231,6 +256,7 @@ file.copy_to(folder)
 * Moving a file to another folder.
 
 ```ruby
+
 # do you really want to query 4 times just to retrieve these?
 file = client.file('/one_folder/cow_folder/an-image.jpg')
 folder = client.folder('image_folder')
@@ -278,14 +304,51 @@ eresp.events.each do |ev|
 end
 ```
 
+As-User
+-------
+
+* This must be manually enabled for your account by Box Staff.   Contact api@box.com for access.  [ More Info ] (http://developers.box.com/docs/#users-as-user)
+
+```ruby
+session = RubyBox::Session.new({
+  client_id: 'your-client-id',
+  client_secret: 'your-client-secret',
+  access_token: 'original-access-token' ,
+  as_user: 'your-users-box-id'
+})
+```
+Users
+------
+
+Current User Info
+
+```ruby
+me = client.me
+```
+
+Current User's enterprise
+
+```ruby
+me = client.me.enterprise
+```
+
+An array of Ruby:Box users in an enterprise (Supports Filtering, Limit and Offset)
+
+```ruby
+users = client.users
+```
+
+* Remeber the API filters "name" and "login" by the start of the string.  ie: to get "sean+awesome@gmail.com" an approriate filter term would be "sean"
+
+```ruby
+users = client.users("sean" , 10 , 1)
+```
+
 Contributors
 ============
 
-* Benjamin Coe
-* Larry Kang
-* Dan Reed
-* Jesse Miller
-* Aleks Clark
+* [full list of contributors](https://github.com/attachmentsme/ruby-box/graphs/contributors)
+
 
 Contributing to ruby-box
 ========================
